@@ -1,0 +1,50 @@
+#!/usr/bin/env python
+
+ # Copyright (C) CITC, Communications and Information Technology Commission,
+ # Kingdom of Saudi Arabia.
+ #
+ # Developed by CITC Tunnel Broker team, tunnelbroker@citc.gov.sa.
+ #
+ # This software is released to public domain under GNU General Public License
+ # version 2, June 1991 or any later. Please see file 'LICENSE' in source code
+ # repository root.
+
+"""
+Script to convert non-encrypted passwords to encrypted passwords.
+""" 
+import sys, os
+import base64
+from optparse import OptionParser
+
+from ddtb import DDTBError
+from ddtb.config import DDTBConfig
+from ddtb.database import DDTBDatabase
+from ddtb import crypto
+
+
+parser = OptionParser()
+parser.add_option('-d','--doit' ,dest='doit',action='store_true',help='After verifying output, use this to write changes into database.')
+(options, args) = parser.parse_args()
+
+try:
+    config = DDTBConfig()
+    database = DDTBDatabase(config)
+    crypt = crypto.TBCrypt()
+except DDTBError,e:
+    print e
+    sys.exit(2)
+
+if not config.ipc.db_key:
+    print "No db_key in config file section [ipc], cannot continue."
+    sys.exit(3)
+
+for a in database.clients():
+    if a.iv == None:
+        iv = crypt.get_new_iv()
+        encpass = base64.b64encode(crypt.encryptPassword(iv, a.passwd, base64.b64decode(config.ipc.db_key)))
+
+        if options.doit:
+            database.update_password(a.login, base64.b64encode(iv), encpass)
+
+        print '%8d %s IV: %s old password: %s encrypted: %s' % (a.id, unicode(a.login), base64.b64encode(iv), unicode(a.passwd), unicode(encpass),)
+

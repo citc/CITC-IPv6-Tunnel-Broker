@@ -1,0 +1,32 @@
+usage: hashstoremanager.py [-h] [--configfile CONFIGFILE] [--hashstore KEYSTORE]
+                          (--create | --list | --add ADD | --remove REMOVE)
+                          [--password | --random RANDOMSIZE] [--version]
+
+Manage hashed hashstore
+
+optional arguments:
+  -h, --help            show this help message and exit
+  --configfile CONFIGFILE, -f CONFIGFILE
+                        Path to config file
+  --hashstore HASHSTORE, -h HASHSTORE
+                        Path to hashstore
+  --create, -c          create a new hashstore
+  --list, -l            list users in hashstore
+  --add ADD, -a ADD     add user to hashstore
+  --remove REMOVE, -r REMOVE
+                        remove user from hashstore
+  --password            Ask for password for new hashstore
+  --random RANDOMSIZE   Generate random password of specified size for
+                        password
+  --version             show program's version number and exit
+
+Prereqs:
+
+Quickstart:
+./hashstoremanager.py -c
+    --or--
+./hashstoremanager.py -c -h <where you want to store the hashstore>
+    --or--
+./hashstoremanager.py -c -h <where you want to store the hashstore> -f <where you want the configfile path stored>
+
+If you are using hashstore manager together with ddtbmanage, ensure that configfile points to the hashstore configuration file in the admin section.

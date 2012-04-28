@@ -1,0 +1,20 @@
+Metadata-Version: 1.0
+Name: ddtb
+Version: 1.0
+Summary: ddtb, a TSP-compliant tunnel broker
+Home-page: http://www.ipv6.sa/tunnelbroker/
+Author: CITC
+Author-email: tunnelbroker@citc.gov.sa
+License: GPL
+Description:     ddtb is implementation of TSP. It works with utun kernel module,
+            adding and removing interfaces that handle IPv6 over UDP/IPv4
+            tunneling (encapsulation/decapsulation). Rudimentary management
+            with ddtbmanage.
+Keywords: IPv6 over IPv4 tunnel broker TSP ddtb
+Platform: UNKNOWN
+Classifier: License :: OSI Approved :: GNU General Public License (GPL)
+Classifier: Programming Language :: Python
+Classifier: Development Status :: 4 - Beta
+Classifier: Environment :: No Input/Output (Daemon)
+Classifier: Operating System :: POSIX :: Linux
+Classifier: Topic :: System :: Networking

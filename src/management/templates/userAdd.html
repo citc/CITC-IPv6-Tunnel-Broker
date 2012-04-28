@@ -1,0 +1,72 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+     "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+    <title>{{ title }}</title>
+    <link href="/static/citc.css" rel="stylesheet" type="text/css" />
+    <link rel="shortcut icon" href="/static/favicon.ico" />
+  </head>
+  <!-- This is badly documented. instructions given in
+       http://www.tornadoweb.org/documentation/overview.html#cross-site-request-forgery-protection
+       do not work, but stackoverflow suggest either &#x7b;% raw xsrf_form_html() %&#x7d; or
+       this &#x7b;% autoescape None %&#x7d;. -->
+  {% autoescape None %}
+  <body>
+    <div id="banner"></div>
+    <div id="header">
+      <h1>{{ title }}</h1>
+    </div>
+    {% if message is not None %}<div id="messagebox">
+      <p>{{ message }}</p>
+    </div>
+    {% end %}
+
+    <form action="" method="post">
+      {{ xsrf_form_html() }}
+      <table summary="">
+        <tbody>
+          <tr>
+            <th><label for="login">Login:</label></th>
+            <td>
+              <input type="text" id="login" name="login" value="{{ login }}" autocomplete="off"/>
+              {% if 'login' in errors %}<span class="error">{{ errors['login'] }}</span>{% end %}
+            </td>
+          </tr>
+          <tr>
+            <th><label for="name">Name:</label></th>
+            <td>
+              <input type="text" id="name" name="name" value="{{ name }}" autocomplete="off"/>
+              {% if 'name' in errors %}<span class="error">{{ errors['name'] }}</span>{% end %}
+            </td>
+          </tr>
+          <tr>
+            <th><label for="email">Email:</label></th>
+            <td>
+              <input type="text" id="email" name="email" value="{{ email }}" autocomplete="off"/>
+              {% if 'email' in errors %}<span class="error">{{ errors['email'] }}</span>{% end %}
+            </td>
+          </tr>
+          <tr>
+            <th><label for="mobile">Mobile:</label></th>
+            <td>
+              <input type="text" id="mobile" name="mobile" value="{{ mobile }}"  autocomplete="off"/>
+              {% if 'mobile' in errors %}<span class="error">{{ errors['mobile'] }}</span>{% end %}
+            </td>
+          </tr>
+          <tr>
+            <td></td>
+            <td>
+              <input type="submit" value="Submit" />
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </form>
+    <div id="footer">
+      <hr />
+      <p class="legalese">&copy; 2011 CITC</p>
+      <a href='mailto:ioc@citc.gov.sa'>Contact Administrator</a>
+    </div>
+  </body>
+</html>

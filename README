@@ -1,0 +1,86 @@
+Purpose
+
+  This open source software is developed by CITC to promote IPv6 deployments 
+  in Saudi Arabia by offering free national IPv6 connectivity to Internet users. 
+  Please visit http://www.ipv6.sa/tunnelbroker for more details.
+
+Overview
+
+  This is IPv6 tunneling server software, built to TSP RFC specification
+  (RFC5572). It contains two parts: python-egg for TSP, and kernel module
+  'utun'. The python part handles virtual interface (utun) creation and
+  deletion, authenticates users, IP address delegation and such.
+  The kernel module 'utun' handles packet encapsulation/decapsulation in
+  kernel space.
+
+  In addition to the basic functionality, there is web-based barebones
+  management software module for resetting user passwords and deleting
+  or creating users.
+
+CITC TSP Tunnel broker
+
+  CITC TSP tunnel broker (ddtb) is a tunnel broker that listens for TSP packets 
+  on port 3653 and negotiates set-up for various kinds of tunnels. Currently 
+  only v6udpv4 tunnels are supported. The tunnels are implemented by a virtual 
+  device 'utun'. You need to compile and install the kernel module for ddtb to work.
+
+  ddtb also requires xtables-addons to work around Linux conntrack preventing
+  content-dependent routing of UDP packets. ddtb uses RAWDNAT and RAWSNAT
+  targets on raw and rawpost tables before conntrack gets to short-circuit
+  the routing. If your distro supports these targets out of the box, good;
+  otherwise install xtabes-addons package or see file INSTALL.
+
+  The python tunnel-broker uses storm ORM.
+
+  inet.ipv4.conf.all.accept_local sysctl is required, otherwise Linux will not
+  route incoming packets (even from virtual interfaces) that have any 'local'
+  address as source address.
+
+  Dependencies in short:
+    - python >=2.6, distutils configured (see file INSTALL)
+    - kernel with accept_local sysctl (>=2.6.32, at least)
+    - python-storm
+    - MySQL
+    - xtables-addons w/RAWSNAT/RAWDNAT
+    - netdev_tx_t defined in netdevice.h (since 2.6.34)
+
+
+utun kernel module
+
+  utun is simple kernel module for encapsulating/decapsulating IPv6 packets
+  over UDP/IPv4 transport. The tunnel broker python module controls creation
+  and deletion of interfaces of type utun. There is no packet handling in user
+  space.
+
+
+Compatibility
+
+  Tested on Ubuntu 10.10 (custom kernel) and 11.04.
+
+  Kernel module does not compile on RHEL5-series. You would need custom kernel,
+  and possibly other things (xtables-addons) as well. ddtb is NOT tested on
+  RHEL5/Centos5 series and may not work even with custom kernel.
+
+  On RH6-series, you need kernel with accept_local enabled. In other words,
+  as of April 2012, you need to build custom kernel, because kernel
+  2.6.32-220.7.1.el6.x86_64 does not have accept_local (RH5 has it backported
+  to 2.6.18-series). I have opened an RFE for getting accept_local into RH6.
+
+  xt_RAWNAT is needed, but there is not xtables-addons for RHEL6/Centos6.
+  xtables-addons-1.37 works. See file INSTALL for instructions.
+
+  Distribution contains directory 'utun-rpm' for building RPM or SRPM. Build
+  process has been tested to work on Centos 6.0 and RHEL6.1. Please see separate
+  README file in directory 'utun-rpm' for details.
+
+  DKMS approach is tested to work on Ubuntu 10.10 with custom (vanilla) kernel
+  that satisfies the requirements (at least 2.6.35-rc3, 2.6.37, 2.6.38 and
+  some other were tested) and Ubuntu 11.04 with default distro kernel(s).
+
+  Requirement for 'accept_local'-enabled kernel applies.
+  Commit 8ec1e0ebe26087bfc5c0394ada5feb5758014fc8 adds this functionality in
+  2.6.32-git4, so it should be present in >= 2.6.32 stable vanilla kernels.
+
+
+CITC IPv6 Tunnel Broker team, tunnelbroker@citc.gov.sa
+2012 Copyright Communications and Information Technology Commission. http://www.citc.gov.sa

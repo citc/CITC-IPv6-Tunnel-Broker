@@ -1,0 +1,70 @@
+2012-04-13
+Unicode characters in user names _and_ account are OK. Please note that tested
+clients don't support using unicode characters in login account names, but TSP
+protocol does not seem to impose restrictions on this.
+
+2012-01-09
+Fix IPC process leaking bug
+
+2011-09-14
+Passwords in database are now encrypted (AES256).
+
+2011-07-13
+Pages are now XHTML-compliant except for 'autocomplete' attribute.
+Separated user/admin users.
+Change admin user management from GET to POST and added XSRF protection to wherever necessary.
+Passwords can now be other than US-ASCII. Any UTF-8 string is now OK.
+User- and admin login templates consolidated, all template styles moved to CSS-file.
+Genshi is no more dependency.
+Various minor bug fixes.
+
+2011-07-09
+Fixed tunnel.py 'ip' commands (one error, one 'Warning: Executing wildcard deletion to stay compatible with old scripts.')
+
+2011-06-07
+Updated management interface look and feel
+Remediated security vulnerabilities per security assessment recommendations
+
+2011-05-31
+Added web management console
+Modified database client schema
+Added JSON-RPC IPC interface for querying TB and managing users
+
+2011-04-18
+Updated startup script and added IPv6 HTTP (w/ HTTPS connection attempt) traffic logger
+
+2011-04-17
+- TB now retrieves allocation prefix and prefix size (together with expiration cleanup and timeout intervals) from ddtb.cfg, instead of relying on hardcoded entries in session.py.
+- removed pesky truncate warning when creating a new prefix.
+
+2011-04-17
+Various re-factored tunnel broker bug fixes.
+
+2011-04-10
+- Fix cutting of left side zeros from hex_bitstring (address a:b:c:d::/64)
+- Fix cutting of zeros from network_bitstring in a:b:c:d000::/64 addresses
+
+2011-04-10 15:11:21
+Import new address.py, with:
+  - fix ipv6 network address with short labels (output hex value, not string!)
+  - hostInNetwork() for ipv6 addresses
+  - revnibbles.arpa and revnibbles.in for ipv6 addresses
+  - ipv4 next and prev attributes (to get next/prev address)
+
+2011-03-27
+Removed useless test script
+
+2011-03-27
+Checkin updated config file with working test setup
+
+2011-03-27
+Imported first draft of refactored ddtb source tree
+
+Changes from TB prototype version:
+==================================
+- Improved installation and initial configuration
+- Revamped TB configuration, added validation
+- Improved initial startup methodology. Implemented PID file handling.
+- Improved verbose logging, helps with troubleshooting and seeing what is going on.
+- Refactored code to be cleaner / object oriented
+- Added code comments

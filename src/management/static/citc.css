@@ -1,0 +1,137 @@
+body {
+    background-image: url('/static/background-rtl.jpg');
+    background-repeat: no-repeat;
+    color: black;
+    margin: 0px 0px 0px 0px;
+    padding: 0px 0px 0px 0px;
+    font-family: Verdana, Arial, Helvetica, "sans serif";
+    font-size: 11pt;
+}
+
+a : link    { color: #ee0000; }
+a : visited { color: #551a8b; }
+a : hover   { color: #fff666; }
+
+#messagebox{
+	margin-left: auto;
+	margin-right: auto;
+	text-align: center;
+	width: 40%;
+	border: 5px solid #ccc;
+	margin-top: 50px;
+	padding: 20px;
+	font-weight: bold;
+        background-color: pink;
+        width: 20em;
+}
+
+#banner {
+    background-image: url('/static/logo.png');
+    background-repeat: no-repeat;
+    background-position: right top;
+    clear: both;
+    margin: 10px 10px 20px 0px;
+    height: 120px;
+}
+
+#banner h3 {
+   padding: 0px;
+   margin: auto auto auto auto;
+   text-align: center;
+   line-height: 50px;
+   width: 100%;
+}
+
+#banner p {
+   margin: auto auto auto auto;
+   text-align: center;
+   line-height: 50px;
+   width: 100%;
+}
+
+#header h1 {
+   padding: 5px;
+    margin: 5px auto 5px auto;
+   text-align: center;
+   line-height: 50px;
+   width: 100%;
+}
+
+#footer {
+    margin: 5px auto 5px auto;
+    padding: 0px 0px 0px 0px;
+    text-align: center;
+    font-style: italic;
+    font-size: smaller;
+    width: 100%;
+}
+
+#leftmenu {
+    width: 250px;
+}
+
+#main {
+    margin: 10px 10px 0px 250px;
+}
+
+#pwchange {
+    margin: 5px auto 5px auto;
+    background-color: #ddddee;
+    padding: 10px 10px 10px 10px;
+    border: 2px solid black;
+    width: 60%;
+}
+
+#pwform {
+    padding: 0px auto 10px auto;
+}
+
+.error {
+    padding: 3px 10px 3px 10px;
+    color: red;
+    border: 1px dotted black;
+    font-size: larger;
+    font-style: bold;
+}
+
+#pwchange .notice {
+    padding: 3px 10px 3px 10px;
+    color: green;
+    border: 1px dotted black;
+    font-size: larger;
+    font-style: bold;
+}
+
+#pwform .label {
+    font-style: bold;
+    margin: 3px 0px 0px 0px;
+}
+
+#pwform .entry {
+    margin: 0px 0px 3px 0px;
+}
+
+#pwform .button {
+    margin: 5px; 0px; 0px; 0px;
+    padding: 0px; 0px; 0px; 0px;
+}
+
+table.pretty {
+  margin: 1em 1em 1em 2em;
+  background: whitesmoke;
+  border-collapse: collapse;
+}
+table.pretty th, table.pretty td {
+  border: 1px silver solid;
+  padding: 0.2em;
+}
+table.pretty th {
+  background: gainsboro;
+  text-align: left;
+}
+table.pretty caption {
+  margin-left: inherit;
+  margin-right: inherit;
+}
+
+* { target-new: tab ! important }

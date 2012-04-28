@@ -1,0 +1,69 @@
+#! /bin/sh
+
+ # Copyright (C) CITC, Communications and Information Technology Commission,
+ # Kingdom of Saudi Arabia.
+ #
+ # Developed by CITC Tunnel Broker team, tunnelbroker@citc.gov.sa.
+ #
+ # This software is released to public domain under GNU General Public License
+ # version 2, June 1991 or any later. Please see file 'LICENSE' in source code
+ # repository root.
+
+# chkconfig 345 85 60
+# description: ddtbmanage, a web interface for TSP tunnel broker user management
+# processname: tbmanage.py
+
+. /etc/init.d/functions
+
+PATH=/sbin:/usr/sbin:/bin:/usr/bin:/usr/local/sbin:/usr/local/bin
+DDTB_DIR=/usr/local/sbin/ddtbmanage
+NAME=tbmanage.py
+DAEMON=$DDTB_DIR/$NAME
+DESC="Web interface to manage ddtb users "
+PIDFILE=/var/run/ddtb/$NAME.pid
+
+test -x $DDTB_DIR/$NAME || exit 0
+
+do_start()
+{
+ if [ -f $PIDFILE ]; then {
+   passed "$DAEMON is already running with PID `cat $PIDFILE`"
+   passed "PID file $PIDFILE exists - exiting."
+   exit 1
+ }
+ fi
+
+ daemon --pidfile $PIDFILE $DAEMON
+
+ # Add code here, if necessary, that waits for the process to be ready
+ # to handle requests from services started subsequently which depend
+ # on this one.  As a last resort, sleep for some time.
+}
+
+do_stop()
+{
+ killproc -p $PIDFILE $DAEMON
+}
+
+case "$1" in
+
+ start)
+   passed "Starting $DESC" "$NAME"
+   do_start
+ ;;
+
+ stop)
+   passed "Stopping $DESC" "$NAME"
+   do_stop
+ ;;
+
+ status)
+   status -p $PIDFILE $DAEMON
+ ;;
+
+ *)
+   echo "Usage: $SCRIPTNAME {start|stop|status}" >&2
+   exit 3
+ ;;
+
+esac

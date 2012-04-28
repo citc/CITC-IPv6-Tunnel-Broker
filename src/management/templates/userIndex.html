@@ -1,0 +1,50 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+     "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+    <title>{{ title }}</title>
+    <link href="/static/citc.css" rel="stylesheet" type="text/css" />
+    <link rel="shortcut icon" href="/static/favicon.ico" />
+  </head>
+  {% autoescape None %}
+  <body>
+    <div id="banner"></div>
+    <div id="header">
+      <h1>{{ title }}</h1>
+    </div>
+    </div>
+    {% if message is not None %}<div id="messagebox">
+      <p>{{ message }}</p>
+    </div>
+    {% end %}
+    {% if userDict is not None %}
+      <table class="pretty">
+        <tbody>
+          <tr>
+            <th>Login: </th><td>{{ userDict['login'] }}</td>
+          </tr>
+          <tr>
+            <th>Name: </th><td>{{ userDict['name'] }}</td>
+          </tr>
+          <tr>
+            <th>Email: </th><td>{{ userDict['email'] }}</td>
+          </tr>
+          <tr>
+            <th>Mobile Number: </th><td>{{ userDict['mobile'] }}</td>
+          </tr>
+        </tbody>
+      </table>
+    {% end %}
+    </div>
+    <ul>
+      <li><a href='/passwd'>Change Password</a></li>
+      <li><a href='/logoff'>Logoff</a></li>
+    </ul>
+    <div id="footer">
+      <hr />
+      <p class="legalese">&copy; 2011 CITC</p>
+      <a href='mailto:ioc@citc.gov.sa'>Contact Administrator</a>
+    </div>
+  </body>
+</html>

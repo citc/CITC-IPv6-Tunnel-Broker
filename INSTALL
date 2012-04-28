@@ -1,0 +1,193 @@
+#
+# For the impatient
+#
+    - install kernel that supports accept_local
+    - make sure your python supports easy_install, pth-files etc.
+    - install xtables-addons (you need xt_RAWNAT and xt_u32)
+    - run 'make && make install', read output carefully for
+      potential problems, especially the python-part
+    - create database DDTB and corresponding user to your mysqld
+      (/usr/local/sbin/ddtb-create-database tells what password to use)
+    - edit configuration files /etc/ddtb/ddtb.cfg and 
+      /etc/ddtb/ddtbmanage.cfg to suit your needs
+    - run /usr/local/sbin/ddtb-accounts to add users
+    - set up gratuitous ARP or static route in your router so that
+      packets to tunnel endpoint IP address come to ddtb server IP
+      (see below for details)
+
+#
+# Test client network settings and setup
+#
+    For testing purposes, install a TSP tunnel client such as
+    gogoc on some test host:
+
+    - install gogoc package
+    - edit /etc/gogoc/gogoc.conf, see EXAMPLES
+    - the tunnel server IP address is not the real, configured IP
+      address in ddtb server but the 'virtual' IP address assigned
+      to tunnel point-to-point IP address
+
+#
+# Network settings and IP addresses on ddtb server
+#
+    Setup IPv6/IPv4:
+
+    - allocate a ethernet interface and assign one globally routable
+      IPv4 and one globally routable IPv6 address
+    - allocate IPv4 address for tunnel endpoint. This should be in same subnet
+      as an IP address configured in previous step. Tunnel clients use
+      this IP address for all traffic (the TSP traffic is NATted to the
+      'real' IP address configured on the interface)
+    - On your router side, don't forget to add v6-route. For example, if you
+      have a /56, create a /56 subnet routed to ddtb server external address
+    - Set sysctl net.ipv6.conf.all.forwarding=1 (make permanent in rc.local
+      or similar)
+
+    Test IPv6 on ddtb server: 
+
+      ping6 router_ipv6_address 
+      ping6 ftp.debian.org 
+
+#
+# Configure static route in nearby router or do gratuitous ARP
+#
+    To be able to do all tunneling-related encapsulation/decapsulation in
+    kernel, we can't run ddtb listening to UDP/3653 in same address as
+    the tunnel interfaces. This is because kernel would give the encapsulated
+    tunneled IPv6-packets to the ddtb-daemon (running in userspace) and
+    they would not go to the kernel module (the kernel module is effectively
+    the tunnel interface, like any interface shown by 'ifconfig').
+
+    Assume the real, configured IP address in say, eth0, is 192.168.1.1,
+    and ddtb listens there. Further assume your netmask is /24 and you 
+    allocate another IP, 192.168.1.2, for tunnel interfaces as point-to-point
+    IP. The tunnel interface is 'virtual' and will not do ARP. You must
+    ensure packets going to 192.168.1.2 are sent to some interface where
+    kernel module can receive them.
+    
+    Consider following physical network setups:
+
+    Legend:
+      '@' means 'internet' connection in general
+      'R' is router
+      'S' is switch:
+  
+      @-------R--- ddtb-server interface (has MAC address 0A:00:00:00:00:42)
+      @---R---S--- ddtb-server interface (has MAC address 0A:00:00:00:00:42)
+
+    Following configurations do what we need:
+
+      - in your router, add static route to 192.168.1.2 via 192.168.1.1
+        or
+      - in your router, accept gratuitous ARP and set your ddtb-server
+        to do gratuitous ARP for 192.168.1.2 for MAC 0A:00:00:00:00:42.
+
+    ddtb daemon sets up iptables so, that packets that are TSP traffic
+    and going to 192.168.1.2 are DNATted to destination address 192.168.1.1.
+    TSP traffic is identified as UDP/IPv4 traffic with destination port 3563
+    and first nibble (4 bits) set to all '1's.
+
+#
+# Preinstallation tasks: Ubuntu / Debian / similar:
+#
+    Make sure you are running same kernel as headers by upgrading and rebooting
+
+      apt-get install make
+      apt-get update && apt-get dist-upgrade && apt-get clean
+      shutdown -r now
+
+#
+# Preinstallation tasks: Redhat, Centos et al. Don't bother unless you have
+# kernel that supports accept_local and you can compile the utun kernel module.
+#
+
+    Disable SELinux:
+    - edit /etc/selinux/config and set SELINUX=disabled
+      sed -i 's/SELINUX=enforcing/SELINUX=disabled/'  /etc/selinux/config
+      echo 0 > /selinux/enforce
+
+    Install xtables-addons 1.37 (or possibly some other version):
+
+      yum install wget git automake autoconf libtool pkgconfig kernel-devel iptables-devel gcc-c++ xz unzip zip file -y
+      wget http://sourceforge.net/projects/xtables-addons/files/Xtables-addons/1.37/xtables-addons-1.37.tar.xz/download
+      xz -d xtables-addons-1.37.tar.xz  # (change name to your version)
+      tar xf xtables-addons-1.37.tar    # (change name to your version)
+      cd xtables-addons-1.37            # (change name to your version)
+      make
+      make install
+
+    Update rest of the system and reboot:
+
+      yum update
+      shutdown -r now
+
+#
+# Preinstallation tasks, Python 2.6 considerations
+#
+
+    Some external packages are required and fetched during the installation.
+    If you haven't yet set up alternative location for python packages,
+    you can see following example. The make process will warn you and
+    advise you to read http://packages.python.org/distribute/easy_install.html#custom-installation-locations .
+
+    # Create directories:
+
+    mkdir /usr/local/lib/python2.6
+    mkdir /usr/local/lib/python2.6/site-packages
+    mkdir /usr/local/lib/python2.6/distutils
+
+    # Configure distutils for alternative install location
+
+    cat > /usr/local/lib/python2.6/distutils/distutils.cfg <<EOF
+[install]
+install_lib = /usr/local/lib/python2.6/site-packages
+install_scripts = /usr/local/bin
+EOF
+
+    # Create .pth file
+    cat > /usr/lib/python2.6/site-packages/altinstall.pth <<EOF
+import os, site; site.addsitedir('/usr/local/lib/python2.6/site-packages')
+EOF
+
+    (If you have python 2.7, it seems to have things right, but md.py
+     installation gives same error code as 2.6 without altinstall
+     settings, so additional checking for python versioning would be
+     needed to automatize this task. It is left for the installing
+     system administrator to take care of this.)
+     
+
+#
+# Install ddtb (the python TSP daemon) and 'utun' kernel module
+#
+    make
+    make install
+
+#
+# Setup database
+#
+    If you haven't yet done so, start mysqld and create DDTB database, user
+    and grant it permissions. Don't worry, just run
+
+      ddtb-create-database
+
+    ..and it will give you commands and show the password to use for ddtb user.
+
+#
+# Setup accounts for ddtb and ddtbmanage users, for example:
+#
+
+    /usr/local/sbin/ddtb-accounts -a -n "FULLNAME" -p "PASSWORD" -e "EMAIL" -t "TELEPHONE-NO" USERNAME
+
+#
+# Start the server in foreground debugging mode
+#
+
+    /usr/local/sbin/ddtb -f
+
+#
+# Start the server as background process, stop it
+#
+
+    service ddtb start
+    service ddtb stop
+

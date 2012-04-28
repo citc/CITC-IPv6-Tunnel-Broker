@@ -1,0 +1,204 @@
+#!/usr/bin/env python
+
+ # Copyright (C) CITC, Communications and Information Technology Commission,
+ # Kingdom of Saudi Arabia.
+ #
+ # Developed by CITC Tunnel Broker team, tunnelbroker@citc.gov.sa.
+ #
+ # This software is released to public domain under GNU General Public License
+ # version 2, June 1991 or any later. Please see file 'LICENSE' in source code
+ # repository root.
+
+import sys, os, time, shlex, socket, datetime
+from subprocess import Popen, PIPE
+import logging
+import logging.handlers
+from pprint import pprint
+from storm.locals import *
+from ddtb.database import *
+from ddtb.config import DDTBConfig
+# from ddtb.database import DDTBDatabase
+
+
+#########################
+# Configuration
+#########################
+accessLogPath               = '/var/log/ddtb/httpaccess.log'
+clientLookup                = True      # Lookup client ipv6 stuff in database
+hostLookup                  = True      # Reverse lookup IPv6 addresses for https traffic
+duplicateSSLentriesTimeout  = 5         # Number of seconds to wait before duplicate https record is registered
+logMaxBytes                 = 5242880   # Maximum log size before rotate in bytes
+backupCount                 = 5         # Number of backup logs to store
+
+
+#########################
+# Helper classes
+#########################
+
+class TsharkLog():
+    """TB access logger logging class"""
+    def __init__(self,logpath, logMaxBytes, backupCount):
+        self.filename  = logpath
+
+        self.tbalogger = logging.getLogger('TBAccessLogger')
+        self.tbalogger.setLevel(logging.INFO)
+
+        self.formatter = logging.Formatter("[%(asctime)s]\t%(message)s")
+
+        self.handler   = logging.handlers.RotatingFileHandler(
+                             self.filename, maxBytes=logMaxBytes, backupCount=backupCount)
+        self.handler.setFormatter(self.formatter)
+
+        self.tbalogger.addHandler(self.handler)
+
+    def log(self, msg):
+            self.tbalogger.info(msg)
+
+class TsharkError(Exception):
+    """TB access logger exception class"""
+    def __str__(self):
+        return self.args[0]
+
+
+#########################
+# tshark runs here
+#########################
+
+class TsharkCommand(object):
+    """TB access logger class"""
+
+    def __init__(self):
+        self.command  = """tshark  -i eth1 -f "ip6 and tcp and (dst port 80 or dst port 443)" -T fields -e ipv6.src -e ipv6.dst -e tcp.dstport -e http.host -e http.request.uri -e http.location -l"""
+        self.cmdlist  = shlex.split(self.command)
+        self.config   = DDTBConfig()
+        self.database = DDTBDatabase(self.config)
+        self.store    = Store(self.database)
+        self.logger   = TsharkLog(accessLogPath, logMaxBytes, backupCount)
+
+    def __str__(self):
+        return self.command
+
+    def __reconnect_db__(self):
+        time.sleep(1)
+        del(self.store)
+        del(self.database)
+
+        try:
+            self.logger.log("Reconnecting...")
+            self.database = DDTBDatabase(self.config)
+            self.store    = Store(self.database)
+            self.logger.log("Reconnected to database.")
+        except:
+            logging.critical ("Reconnecting to database failed.")
+            return "DB_ERROR_UNKNOWN/%s" % clientIPv6Address
+
+
+    def __lookup__(self, clientIPv6Address):
+        try:
+            tunnel = self.store.find(Tunnel, Tunnel.client_ipv6==unicode(clientIPv6Address)).one()
+            if tunnel:
+                return tunnel.client.name
+            else:
+                return "UNKNOWN/%s (%s)" % (clientIPv6Address, "IPv6 address not associated with known tunnel in database.")
+        except:
+            self.logger.log("Looking up %s failed, retry connection to db." % (clientIPv6Address))
+            self.__reconnect_db__()
+
+        try:
+            tunnel = self.store.find(Tunnel, Tunnel.client_ipv6==unicode(clientIPv6Address)).one()
+            if tunnel:
+                return tunnel.client.name
+            else:
+                return "UNKNOWN/%s (%s)" % (clientIPv6Address, "IPv6 address not associated with known tunnel in database.")
+
+        except:
+            return "UNKNOWN/%s (%s)" % (clientIPv6Address, "Database connection not available.")
+
+
+
+    def run(self):
+        try:
+            p = Popen(self.cmdlist, stdin=PIPE, stdout=PIPE, stderr=PIPE)
+
+            # Logix to avoid multiple hits for one SSL
+            previousSSL = ""
+            previousSSLtimestamp = datetime.datetime.now() - datetime.timedelta(seconds=100)
+
+            clientname = None
+            hostname   = None
+
+            logging.debug('Running: %s' % self)
+            rval = None
+
+            while rval is None:
+                while True:
+                    l = p.stdout.readline().rstrip()
+
+                    # If command's stdout iostream/pipe is empty
+                    if l == '': break
+                    else:
+                        outputlist = l.split('\t')
+                        # For a port http log event
+                        # Note: ensure that we only report full URLS
+                        if outputlist[2] == '80' and len(outputlist) >= 5:
+                            # Check in config if we are to lookup the request originating
+                            # IPv6 address in the database
+                            if clientLookup:
+                                clientname = self.__lookup__(outputlist[0])
+                            else:
+                                clientname = outputlist[0]
+                            url = 'http://%s%s' %(outputlist[3],outputlist[4])
+                            self.logger.log("%s\t%s" % (clientname, url))
+
+                        # For a https log event
+                        # Note: with https traffic we get a lot of duplicate entries
+                        #       to mitigate this we have a duplicate entry and timeout
+                        #       mechanism to limit the amount of duplicate entries within
+                        #       the predefined entry timeout period
+                        elif outputlist[2] == '443' and (previousSSL != outputlist[1] or \
+                                              (previousSSL == outputlist[1] and \
+                                              (datetime.datetime.now() - previousSSLtimestamp > \
+                                               datetime.timedelta(seconds=duplicateSSLentriesTimeout)))):
+
+                            if clientLookup:
+                                clientname = self.__lookup__(outputlist[0])
+                            else:
+                                clientname = outputlist[0]
+
+                            # Check in config if we are to lookup the hostname for
+                            # the IPv6 destination (only needed for SSL)
+                            if hostLookup:
+                                try:
+                                    hostname = socket.gethostbyaddr(outputlist[1])[0]
+                                except:
+                                    hostname = outputlist[1]
+                            else:
+                                hostname = outputlist[1]
+                            url = 'https://%s' %(hostname)
+                            self.logger.log("%s\t%s" % (clientname, url))
+
+                            # Set update previousSSL variables so we skip duplicates
+                            previousSSL = outputlist[1]
+                            previousSSLtimestamp = datetime.datetime.now()
+                time.sleep(0.2)
+                rval = p.poll()
+            logging.debug('Return code: %s' % rval)
+            if rval != 0:
+                raise TsharkError('Error running command %s: %s' % (
+                    self,p.stderr.read()
+                ))
+        except KeyboardInterrupt:
+            logging.debug('Capture interrupted by user')
+            raise KeyboardInterrupt
+
+#########################
+# Driver
+#########################
+if __name__ == '__main__':
+    logging.basicConfig(level=logging.DEBUG)
+    t = TsharkCommand()
+
+    try:
+        t.run()
+    except KeyboardInterrupt:
+        pass

@@ -1,0 +1,55 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+     "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+    <title>{{ title }}</title>
+    <link href="/static/citc.css" rel="stylesheet" type="text/css" />
+    <link rel="icon" href="/static/favicon.gif" type="image/gif" />
+  </head>
+  {% autoescape None %}
+  <body>
+    <div id="banner"></div>
+    <div id="header">
+      <h1>{{ title }}</h1>
+    </div>
+    {% if message is not None %}<div id="messagebox">
+      <p>{{ message }}</p>
+    </div>
+    {% end %}
+
+    <form action="" method="post" accept-charset="UTF-8">
+      {{ xsrf_form_html() }}
+      <table summary="">
+        <tbody>
+          <tr>
+            <th><label for="user">Login:</label></th>
+            <td>
+              <input type="text" id="user" name="user" autocomplete="off" />
+              {% if 'user' in errors %}<span class="error">{{ errors['user'] }}</span>{% end %}
+            </td>
+          </tr>
+          <tr>
+            <th><label for="passwd">Password:</label></th>
+            <td>
+              <input type="password" id="passwd" name="passwd" autocomplete="off"/>
+                {% if 'passwd' in errors %}<span class="error">{{ errors['passwd'] }}</span>{% end %}
+            </td>
+          </tr>
+          <tr>
+            <td></td>
+            <td>
+              <input type="submit" value="Submit" />
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </form>
+
+    <div id="footer">
+      <hr />
+      <p class="legalese">&copy; 2011 CITC</p>
+      <a href='mailto:ioc@citc.gov.sa'>Contact Administrator</a>
+    </div>
+  </body>
+</html>

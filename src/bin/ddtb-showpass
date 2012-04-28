@@ -1,0 +1,55 @@
+#!/usr/bin/env python
+
+ # Copyright (C) CITC, Communications and Information Technology Commission,
+ # Kingdom of Saudi Arabia.
+ #
+ # Developed by CITC Tunnel Broker team, tunnelbroker@citc.gov.sa.
+ #
+ # This software is released to public domain under GNU General Public License
+ # version 2, June 1991 or any later. Please see file 'LICENSE' in source code
+ # repository root.
+
+"""
+Script to show user passwords. Anyone could write this, so it should not
+matter if it's provided by default. Please, do keep the ddtb.cfg file
+readable by only the ddtb user.
+
+""" 
+import sys, os
+import base64
+from optparse import OptionParser
+
+from ddtb import DDTBError
+from ddtb.config import DDTBConfig
+from ddtb.database import DDTBDatabase
+from ddtb import crypto
+
+
+parser = OptionParser()
+parser.add_option('-d','--doit' ,dest='doit',action='store_true',help='Really show password.')
+(options, args) = parser.parse_args()
+
+try:
+    config = DDTBConfig()
+    database = DDTBDatabase(config)
+    crypt = crypto.TBCrypt()
+except DDTBError,e:
+    print e
+    sys.exit(2)
+
+if not config.ipc.db_key:
+    print "No db_key in config file section [ipc], cannot continue."
+    sys.exit(3)
+
+print '%5s %12s %24s %36s' % ('ID', 'login', 'IV       ', 'password    ')
+print '------------------------------------------------------------------------------'
+for a in database.clients():
+    if a.iv is not None:
+        decpass = base64.b64encode(crypt.decryptPassword(base64.b64decode(a.iv), base64.b64decode(a.passwd), base64.b64decode(config.ipc.db_key)))
+
+        if options.doit:
+            print '%5d %12s %24s %36s' % (a.id, unicode(a.login), a.iv, decpass)
+
+        else:
+            print '%5d %16s %26s %26s' % (a.id, unicode(a.login), a.iv, '(password not shown)')
+

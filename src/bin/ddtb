@@ -1,0 +1,114 @@
+#!/usr/bin/env python
+
+ # Copyright (C) CITC, Communications and Information Technology Commission,
+ # Kingdom of Saudi Arabia.
+ #
+ # Developed by CITC Tunnel Broker team, tunnelbroker@citc.gov.sa.
+ #
+ # This software is released to public domain under GNU General Public License
+ # version 2, June 1991 or any later. Please see file 'LICENSE' in source code
+ # repository root.
+
+import sys,os,signal
+from subprocess import call
+from optparse import OptionParser
+
+STATUS_DIR = '/var/run/ddtb' 
+PIDFILE = os.path.join(STATUS_DIR,'ddtb.pid')
+
+parser = OptionParser()
+parser.set_defaults(**{'pidfile': PIDFILE})
+parser.add_option('-p','--pid-file',dest='pidfile',type='string',help='Path to PID file')
+parser.add_option('-f','--foreground',dest='nofork',action='store_true',help='Run foreground')
+(opts,args) = parser.parse_args()
+
+# Check root privileges
+if os.geteuid() != 0:
+    program = os.path.basename(sys.argv[0])
+    print 'ERROR: %s must be executed with root privileges.' % program
+    sys.exit(1)
+
+if os.path.isfile(opts.pidfile):
+    pid = open(opts.pidfile,'r').read(16).rstrip()
+    print 'Already running (PID %s)' % pid
+    sys.exit(1)
+else:
+    pid_dir = os.path.dirname(opts.pidfile)
+    if not os.path.isdir(pid_dir):
+        try:
+            os.makedirs(pid_dir)
+        except IOError,(ecode,emsg):
+            print 'Error creating directory %s: %s' % (pid_dir,emsg)
+            sys.exit(1)   
+
+if not opts.nofork:
+    pid = os.fork()
+    if pid != 0:
+        try:
+            open(opts.pidfile,'w').write('%s\n' % pid)
+        except IOError,(ecode,emsg):
+            print 'Error writing to %s: %s' % (opts.pidfile,emsg)
+        sys.exit(0)
+else:
+    print 'Running foreground PID %d, press ctrl-c to abort' % os.getpid()
+    try:
+        open(opts.pidfile,'w').write('%s\n' % os.getpid())
+    except IOError,(ecode,emsg):
+        print 'Error writing to %s: %s' % (opts.pidfile,emsg)
+        sys.exit(0)
+
+from ddtb import DDTBError
+from ddtb.config import DDTBConfig
+from ddtb.session import ClientSessionManager
+
+config = DDTBConfig()
+
+# Make sure kernel module is loaded, or try loading if not
+loaded = filter(
+    lambda x: x.split()[0]=='utun', 
+    open('/proc/modules','r').readlines()
+)
+if len(loaded)==0:
+    logs.ddtb.debug('Kernel module is not loaded, loading')
+    rv = call(['modprobe','utun'])
+    if rv != 0:
+        logs.ddtb.error('Kernel module utun could not be loaded, shutting down.')
+        print 'ERROR: Kernel module utun could not be loaded.'
+        sys.exit(1)
+else:
+    logs.ddtb.debug('Kernel module utun was already loaded.')
+
+# ClientSession never returns but waits for clients and forks 
+# children to handle each TSP client
+try:
+    pid = os.getpid()
+    try:
+        manager = ClientSessionManager(config)
+    except DDTBError,e:
+        logs.ddtb.error('FATAL ERROR: %s' % e)
+        print 'Error initializing client session manager.'
+        sys.exit(0)
+    except Exception,e:
+        logs.ddtb.error('UNEXPECTED FATAL ERROR when instantiating ClientSessionManager: %s' % e)
+        print 'Error initializing client session manager.'
+        sys.exit(1)
+
+    manager.run()
+
+finally:
+    # only 
+    if os.getpid() == pid:
+        config.cleanup_system()
+        logs.ddtb.info('Unloading kernel module')
+        rv = call(['rmmod','utun'])
+        if rv != 0:
+            logs.ddtb.error('Kernel module utun could not be unloaded.')
+            print 'ERROR: Kernel module utun could not be unloaded.'
+
+        logs.ddtb.info('Stopping DDTB')
+        if os.path.isfile(opts.pidfile):
+            try:
+                os.unlink(opts.pidfile)
+            except IOError,(ecode,emsg):
+                print 'Error removing PID file %s: %s' % (opts.pidfile,emsg)
+

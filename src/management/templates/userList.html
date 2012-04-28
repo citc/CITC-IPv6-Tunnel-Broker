@@ -1,0 +1,57 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+     "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+    <title>{{ title }}</title>
+    <link href="/static/citc.css" rel="stylesheet" type="text/css" />
+    <link rel="shortcut icon" href="/static/favicon.ico" />
+  </head>
+  {% autoescape None %}
+  <body>
+    <div id="banner"></div>
+    <div id="header">
+      <h1>{{ title }}</h1>
+    </div>
+    {% if message is not None %}<div id="messagebox">
+      <p>{{ message }}</p>
+    </div>
+    {% end %}
+    {% if userList is not None %}
+    <form action="/admin/users/change" method="post">
+      {{ xsrf_form_html() }}
+      <table class="pretty">
+        <tbody>
+          <tr>
+            <th>Login</th><th>Name</th><th>Email</th><th>Mobile Number</th><th>Actions</th>
+          </tr>
+          {% for userDict in userList %}
+          <tr>
+            {% for field in fieldList %}
+              <td>{{ userDict[field] }}</td>
+            {% end %}
+              <td>
+<!-- Note: don't change button values unless you change the code, too. -->
+                <input type="submit" name={{ userDict['login'] }} value="Delete"></input>
+                &nbsp; &nbsp;
+                <input type="submit" name={{ userDict['login'] }} value="Reset password"></input>
+              </td>
+          </tr>
+          {% end %}
+        </tbody>
+      </table>
+    </form>
+    {% end %}
+    </div>
+
+    <ul>
+      <li><a href='/admin/users/add'>Add User</a></li>
+      <li><a href='/admin/logoff'>Logoff</a></li>
+    </ul>
+    <div id="footer">
+      <hr />
+      <p class="legalese">&copy; 2011 CITC</p>
+      <a href='mailto:ioc@citc.gov.sa'>Contact Administrator</a>
+    </div>
+  </body>
+</html>

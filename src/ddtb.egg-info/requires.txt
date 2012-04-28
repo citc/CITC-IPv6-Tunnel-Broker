@@ -1,0 +1,7 @@
+configobj
+md.py
+mysql-python
+storm
+bjsonrpc
+tornado
+formencode

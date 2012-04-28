@@ -1,0 +1,27 @@
+Hello,
+
+this is directory structure for building RPM/SRPM of utun kernel module for
+IPv6 over UDP/IPv4 transport.
+
+Run 
+     rpmbuild -ba --target=`uname -m` SPECS/kmod-utun.spec 2> build-err.log | tee build-out.log
+
+or similar in your RPM-build top directory to produce files
+     ./RPMS/i686/kmod-utun-1.0-1.el6.i686.rpm
+     ./SRPMS/kmod-utun-1.0-1.el6.src.rpm
+
+After this, you can install the module RPM with command
+     rpm -ivh ./RPMS/i686/kmod-utun-1.0-1.el6.i686.rpm
+
+and insert it into kernel with
+     modprobe utun
+
+or get info with
+     modinfo utun
+
+
+Enjoy.
+
+
+-- 
+CITC IPv6 Tunnel Broker team / tunnelbroker@citc.gov.sa

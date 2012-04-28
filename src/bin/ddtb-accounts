@@ -1,0 +1,106 @@
+#!/usr/bin/env python
+
+ # Copyright (C) CITC, Communications and Information Technology Commission,
+ # Kingdom of Saudi Arabia.
+ #
+ # Developed by CITC Tunnel Broker team, tunnelbroker@citc.gov.sa.
+ #
+ # This software is released to public domain under GNU General Public License
+ # version 2, June 1991 or any later. Please see file 'LICENSE' in source code
+ # repository root.
+
+# -*- coding: utf-8 -*-
+"""
+Script to create, list and modify user accounts in the tunnel broker
+""" 
+import sys, os
+import base64
+from optparse import OptionParser
+
+from ddtb import DDTBError
+from ddtb.config import DDTBConfig
+from ddtb.database import DDTBDatabase
+from ddtb import crypto
+
+DEFAULT_MIN_PREFIX = 1
+DEFAULT_MAX_PREFIX = 50
+
+parser = OptionParser()
+parser.set_defaults(**{
+    'max_prefix': DEFAULT_MAX_PREFIX,
+    'min_prefix': DEFAULT_MIN_PREFIX,
+})
+parser.add_option('-a','--add',dest='add',action='store_true',help='Add a new account (requires account name as last parameter)')
+parser.add_option('-r','--remove',dest='remove',action='store_true',help='Remove given accounts')
+parser.add_option('-l','--list',dest='list',action='store_true',help='List existing accounts')
+parser.add_option('-n','--name',dest='name',type='string',help='Full name')
+parser.add_option('-p','--password',dest='password',type='string',help='User password')
+parser.add_option('-e','--email',dest='email',type='string',help='E-mail address')
+parser.add_option('-t','--telephone',dest='telephone',type='string',help='Telephone number (mobile)')
+parser.add_option('-i','--min-prefix',dest='min_prefix',type='int',help='New user minimum number of tunnel prefixes')
+parser.add_option('-m','--max-prefix',dest='max_prefix',type='int',help='New user maximum number of tunnel prefixes')
+(options, args) = parser.parse_args()
+
+try:
+    config = DDTBConfig()
+    database = DDTBDatabase(config)
+    crypt = crypto.TBCrypt()
+except DDTBError,e:
+    print e
+    sys.exit(2)
+
+if not config.ipc.db_key:
+    print "No db_key in config file section [ipc], cannot continue."
+    sys.exit(3)
+
+if options.add:
+    if len(args) == 0:
+        print 'Missing username'
+        sys.exit(1)
+    user = args[0]
+
+    for k in ['name', 'password', 'email', 'telephone', 'min_prefix', 'max_prefix']:
+        try:
+            if getattr(options, k) is None:
+                raise AttributeError
+        except AttributeError:
+            print 'Missing option: %s' %k
+            sys.exit(1)
+    try:
+        iv = crypt.get_new_iv()
+        password = base64.b64encode(crypt.encryptPassword(iv, options.password, base64.b64decode(config.ipc.db_key)))
+        database.register_client(
+            login      = unicode(user, "utf-8"),
+            name       = options.name.decode('utf-8'),
+            iv         = base64.b64encode(iv),
+            passwd     = password,
+            email      = unicode(options.email, "utf-8"),
+            mobile     = options.telephone,
+            ipaddress  = "Manually added user",
+            min_prefix = options.min_prefix,
+            max_prefix = options.max_prefix
+        )
+    except DDTBError,e:
+        print unicode(e)
+        sys.exit(1)
+elif options.remove:
+    for login in args:
+        try:
+            database.unregister_client(login=login)
+        except DDTBError,e:
+            print 'Error removing user %s: %s' % (login,e) 
+elif options.list:
+
+    print '%5s %12s %24s %36s' % ('ID', 'login', 'IV       ', 'password (encrypted)  ')
+    print '------------------------------------------------------------------------------'
+
+    for a in database.clients():
+       print '%5d %12s %24s %36s' % (a.id, unicode(a.login), a.iv, a.passwd)
+    
+else:
+    print parser.get_usage()
+    print ""
+    print "Example: /usr/local/sbin/ddtb-accounts -a -n \"FULLNAME\" -p \"PASSWORD\" -e \"EMAIL\" -t \"TELEPHONE-NO\" USERNAME"
+    print ""
+    sys.exit(1)
+
